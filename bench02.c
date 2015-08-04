@@ -164,7 +164,7 @@ void perform_gets_operations(gets_op_t* ops, int num_ops,
   *getb_time = ((getb_time_end.tv_sec * 1e6 + getb_time_end.tv_usec) -
                     (getb_time_start.tv_sec * 1e6 + getb_time_start.tv_usec)) / 1e3;
 
-  printf("GASNET %d: GET BLOCK time = %.3f msec.\n", gasnet_mynode(), *getb_time);
+  printf("GASNET %d :: GET BLOCK time = %.3f msec.\n", gasnet_mynode(), *getb_time);
 
   gasnet_barrier_notify(0, GASNET_BARRIERFLAG_ANONYMOUS);
   gasnet_barrier_wait(0, GASNET_BARRIERFLAG_ANONYMOUS);
@@ -179,7 +179,7 @@ void perform_gets_operations(gets_op_t* ops, int num_ops,
   *getp_time = ((getp_time_end.tv_sec * 1e6 + getp_time_end.tv_usec) -
                     (getp_time_start.tv_sec * 1e6 + getp_time_start.tv_usec)) / 1e3;
 
-  printf("GASNET %d: GET PIPE time = %.3f msec.\n", gasnet_mynode(), *getp_time);
+  printf("GASNET %d :: GET PIPE time = %.3f msec.\n", gasnet_mynode(), *getp_time);
 
   gasnet_barrier_notify(0, GASNET_BARRIERFLAG_ANONYMOUS);
   gasnet_barrier_wait(0, GASNET_BARRIERFLAG_ANONYMOUS);
@@ -194,11 +194,22 @@ void perform_gets_operations(gets_op_t* ops, int num_ops,
   *getv_time = ((getv_time_end.tv_sec * 1e6 + getv_time_end.tv_usec) -
                      (getv_time_start.tv_sec * 1e6 + getv_time_start.tv_usec)) / 1e3;
 
-  printf("GASNET %d: GET VIS time = %.3f msec.\n", gasnet_mynode(), *getv_time);
+  printf("GASNET %d :: GET VIS time = %.3f msec.\n", gasnet_mynode(), *getv_time);
 } // perform_gets_operations()
 
 
 int main(int narg, char** args) {
+
+  if(narg != 2 && narg != 3) {
+    printf("usage: ./bench02 <0|1> [niter]\n  0 = non-strided requests input\n  1 = strided requests input\n");
+    return 0;
+  } // if
+
+  int strided = atoi(args[1]);
+  int niter = 10;
+  if(narg == 3) {
+    niter = atoi(args[2]);
+  } // if
 
   // init gasnet
   gasnet_init(&narg, &args);
@@ -216,18 +227,26 @@ int main(int narg, char** args) {
     printf("== %d: %d = %p [%u]\n", gasnet_mynode(), i, myseginfo_table[i].addr, myseginfo_table[i].size);
   } // for
 
-  char fname[32];
-  sprintf(fname, "gasnet_gets_operations%d.raw", gasnet_mynode());
+  char fname[45];
+  if(strided) {
+    sprintf(fname, "gasnet_gets_operations_strided%d.raw", gasnet_mynode());
+  } else {
+    sprintf(fname, "gasnet_gets_operations_nonstrided%d.raw", gasnet_mynode());
+  } // if
+
+  if(gasnet_mynode() == 0) {
+    if(strided) printf("** Performing tests with strided requests. Iterations = %d\n", niter);
+    else printf("** Performing tests with nonstrided requests. Iterations = %d\n", niter);
+  } // if
 
   gets_op_t * ops;
   int num_ops = read_gets_operations(fname, &ops);
 
-  printf("%d has %d operations to perform\n", gasnet_mynode(), num_ops);
+  printf("** %d has %d operations to perform\n", gasnet_mynode(), num_ops);
 
   gasnet_barrier_notify(0, GASNET_BARRIERFLAG_ANONYMOUS);
   gasnet_barrier_wait(0, GASNET_BARRIERFLAG_ANONYMOUS);
 
-  int niter = 10;
   double avg_getb_time = 0.0, avg_getp_time = 0.0, avg_getv_time = 0.0;
   for(int i = 0; i < niter; ++ i) {
     double getb_time = 0.0, getp_time = 0.0, getv_time = 0.0;
@@ -237,9 +256,9 @@ int main(int narg, char** args) {
     avg_getv_time += getv_time;
   } // for
 
-  printf("GASNET %d: Requests = %d, average GET BLOCK time = %.3f\n", gasnet_mynode(), num_ops, avg_getb_time / niter);
-  printf("GASNET %d: Requests = %d, average GET PIPE time = %.3f\n", gasnet_mynode(), num_ops, avg_getp_time / niter);
-  printf("GASNET %d: Requests = %d, average GET VIS time = %.3f\n", gasnet_mynode(), num_ops, avg_getv_time / niter);
+  printf("GASNET %d :: Requests = %d, average GET BLOCK time = %.3f\n", gasnet_mynode(), num_ops, avg_getb_time / niter);
+  printf("GASNET %d :: Requests = %d, average GET PIPE time = %.3f\n", gasnet_mynode(), num_ops, avg_getp_time / niter);
+  printf("GASNET %d :: Requests = %d, average GET VIS time = %.3f\n", gasnet_mynode(), num_ops, avg_getv_time / niter);
 
   // exit gasnet
   gasnet_exit(0);
