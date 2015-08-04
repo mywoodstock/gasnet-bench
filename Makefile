@@ -13,15 +13,22 @@ LDFLAGS = -L$(GASNETDIR)/lib
 LIBS = -lgasnet-aries-seq -Wl,--whole-archive,-lhugetlbfs,--no-whole-archive
 
 
-BINARY=bench01
-OBJS=bench01.o
+BINARY01=bench01
+OBJS01=bench01.o
+BINARY02=bench02
+OBJS02=bench02.o
 
+all: $(BINARY01) $(BINARY02)
 
-$(BINARY): $(OBJS)
-	$(CC) -o $(BINARY) $^ $(CFLAGS) $(LDFLAGS) $(LIBS)
+$(BINARY01): $(OBJS01)
+	$(CC) -o $(BINARY01) $^ $(CFLAGS) $(LDFLAGS) $(LIBS)
+
+$(BINARY02): $(OBJS02)
+	$(CC) -o $(BINARY02) $^ $(CFLAGS) $(LDFLAGS) $(LIBS)
+
 
 %.o: %.c
 	$(CC) -c $^ -o $@ $(CFLAGS) $(INCFLAGS)
 
 clean:
-	rm -f $(BINARY) $(OBJS)
+	rm -f $(BINARY01) $(BINARY02) $(OBJS01) $(OBJS02)
